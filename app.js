@@ -3,8 +3,9 @@ const express = require("express");
 const ejs = require('ejs');
 const bodyParser = require("body-parser");
 const mongoose = require('mongoose');
-const md5 = require('md5');
 const app = express();
+const bcrypt = require('bcrypt');
+const saltRounds = 10;
 
 mongoose.connect("mongodb+srv://Deadly:9704@cluster0.dct1jfy.mongodb.net/userDB").then(()=>{
   console.log("connection is successful")
@@ -38,29 +39,27 @@ app.get("/register",(req,res)=>{
   res.render("register")
 });
 
-app.post("/register",async(req,res)=>{
-try {
+app.post("/register",(req,res)=>{
+ bcrypt.hash(req.body.password, saltRounds, function(err, hash) {
   const newUser = new User({
     email:req.body.username,
-    password:md5(req.body.password)
+    password:hash
   });
- await newUser.save();
+  newUser.save();
  res.render("secrets")
-} catch(err){
-  console.log(err)
-}
+});
 });
 
 app.post("/login",async(req,res)=>{
   try {
     const username = req.body.username;
-    const password = md5(req.body.password);
+    const password = req.body.password;
     const usermail = await User.findOne({email:username});
-    if(usermail.password === password){
+bcrypt.compare(password,usermail.password, function(err, result) {
+    if(result === true){
       res.render("secrets");
-    } else {
-      res.send("password does not match");
     }
+});
   } catch(err) {
     console.log(err)
   }
